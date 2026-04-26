@@ -3,33 +3,23 @@
 import { useState } from 'react'
 import { useAwardStore } from '@/store/awardStore'
 import { TEAMS, TEAMS_AND_PLAYERS } from '@/data/teamsAndPlayers'
-import { getMockQuote } from '@/data/quotes'
+import { getMockQuote, ALL_QUOTES } from '@/data/quotes'
 import { getTeamTheme } from '@/data/teamThemes'
 import Certificate from './Certificate'
-import QuoteBubble from './QuoteBubble'
 import { downloadCertificate } from '@/lib/downloadCertificate'
-
-const SEASONS = ['2025/2026', '2024/2025', '2023/2024', '2022/2023']
 
 const labelClass = 'block text-sm font-semibold text-gray-700 mb-1.5'
 
 const inputClass =
   'w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 bg-white transition-shadow'
 
-function LoadingView({ awardeeName, quotePlayer, accent }: { awardeeName: string; quotePlayer: string; accent: string }) {
+function LoadingView({ awardeeName, accent }: { awardeeName: string; accent: string }) {
   return (
     <div className="text-center py-16 space-y-6">
       <div className="text-7xl animate-bounce drop-shadow-lg select-none">🏆</div>
-
-      <div>
-        <h2 className="text-2xl font-bold text-white mb-2">
-          Immortalising {awardeeName || 'your legend'}...
-        </h2>
-        <p className="text-white/60 text-sm">
-          Consulting {quotePlayer || 'a legend'} for an exclusive quote
-        </p>
-      </div>
-
+      <h2 className="text-2xl font-bold text-white">
+        Immortalising {awardeeName || 'your legend'}...
+      </h2>
       <div className="flex justify-center gap-2.5 pt-1">
         {[0, 180, 360].map((delay) => (
           <div
@@ -45,7 +35,6 @@ function LoadingView({ awardeeName, quotePlayer, accent }: { awardeeName: string
 
 export default function AwardForm() {
   const setFormData = useAwardStore((s) => s.setFormData)
-  const setQuote = useAwardStore((s) => s.setQuote)
   const setIsLoading = useAwardStore((s) => s.setIsLoading)
   const isLoading = useAwardStore((s) => s.isLoading)
   const formData = useAwardStore((s) => s.formData)
@@ -53,9 +42,10 @@ export default function AwardForm() {
   const [awardeeName, setAwardeeName] = useState('')
   const [fantasyTeamName, setFantasyTeamName] = useState('')
   const [favoriteTeam, setFavoriteTeam] = useState('')
-  const [season, setSeason] = useState(SEASONS[0])
   const [awardTitle, setAwardTitle] = useState('')
   const [quotePlayer, setQuotePlayer] = useState('')
+  const [previewQuote, setPreviewQuote] = useState('')
+  const [previewIndex, setPreviewIndex] = useState(0)
   const [optionalStory, setOptionalStory] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
@@ -66,16 +56,30 @@ export default function AwardForm() {
   const handleTeamChange = (team: string) => {
     setFavoriteTeam(team)
     setQuotePlayer('')
+    setPreviewQuote('')
+  }
+
+  const handlePlayerChange = (player: string) => {
+    setQuotePlayer(player)
+    setPreviewQuote(player ? getMockQuote(player) : '')
+  }
+
+  const handleNewQuote = () => {
+    let nextIndex: number
+    do {
+      nextIndex = Math.floor(Math.random() * ALL_QUOTES.length)
+    } while (nextIndex === previewIndex && ALL_QUOTES.length > 1)
+    setPreviewIndex(nextIndex)
+    setPreviewQuote(ALL_QUOTES[nextIndex])
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setFormData({ awardeeName, fantasyTeamName, favoriteTeam, season, awardTitle, quotePlayer, optionalStory })
+    setFormData({ awardeeName, fantasyTeamName, favoriteTeam, awardTitle, quotePlayer, optionalStory, quote: previewQuote })
     await new Promise<void>((resolve) =>
-      setTimeout(resolve, 1800 + Math.random() * 700)
+      setTimeout(resolve, 1200 + Math.random() * 600)
     )
-    setQuote(getMockQuote(quotePlayer))
     setIsLoading(false)
     setSubmitted(true)
   }
@@ -94,9 +98,10 @@ export default function AwardForm() {
     setAwardeeName('')
     setFantasyTeamName('')
     setFavoriteTeam('')
-    setSeason(SEASONS[0])
     setAwardTitle('')
     setQuotePlayer('')
+    setPreviewQuote('')
+    setPreviewIndex(0)
     setOptionalStory('')
     setIsLoading(false)
     setSubmitted(false)
@@ -122,23 +127,11 @@ export default function AwardForm() {
         </div>
 
         {isLoading ? (
-          <LoadingView awardeeName={awardeeName} quotePlayer={quotePlayer} accent={theme.accent} />
+          <LoadingView awardeeName={awardeeName} accent={theme.accent} />
         ) : showCertificate ? (
+          /* Certificate view — award + actions only */
           <div className="w-full space-y-5">
-            <QuoteBubble />
             <Certificate />
-
-            {formData.optionalStory && (
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl px-6 py-4 border border-white/20">
-                <p className="text-xs font-semibold text-white/50 uppercase tracking-widest mb-2">
-                  The Story
-                </p>
-                <p className="text-white/80 italic text-sm leading-relaxed">
-                  &ldquo;{formData.optionalStory}&rdquo;
-                </p>
-              </div>
-            )}
-
             <div className="flex gap-3">
               <button
                 onClick={handleReset}
@@ -198,39 +191,21 @@ export default function AwardForm() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Favourite Club</label>
-                <select
-                  value={favoriteTeam}
-                  onChange={(e) => handleTeamChange(e.target.value)}
-                  className={inputClass}
-                  style={{ '--tw-ring-color': theme.accent } as React.CSSProperties}
-                >
-                  <option value="">Select a club...</option>
-                  {TEAMS.map((team) => (
-                    <option key={team} value={team}>
-                      {team}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className={labelClass}>Season</label>
-                <select
-                  value={season}
-                  onChange={(e) => setSeason(e.target.value)}
-                  className={inputClass}
-                  style={{ '--tw-ring-color': theme.accent } as React.CSSProperties}
-                >
-                  {SEASONS.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div>
+              <label className={labelClass}>Favourite Club</label>
+              <select
+                value={favoriteTeam}
+                onChange={(e) => handleTeamChange(e.target.value)}
+                className={inputClass}
+                style={{ '--tw-ring-color': theme.accent } as React.CSSProperties}
+              >
+                <option value="">Select a club...</option>
+                {TEAMS.map((team) => (
+                  <option key={team} value={team}>
+                    {team}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -249,7 +224,7 @@ export default function AwardForm() {
               <label className={labelClass}>Quote Style</label>
               <select
                 value={quotePlayer}
-                onChange={(e) => setQuotePlayer(e.target.value)}
+                onChange={(e) => handlePlayerChange(e.target.value)}
                 disabled={!favoriteTeam}
                 className={`${inputClass} disabled:opacity-50 disabled:cursor-not-allowed`}
                 style={{ '--tw-ring-color': theme.accent } as React.CSSProperties}
@@ -261,6 +236,29 @@ export default function AwardForm() {
                   </option>
                 ))}
               </select>
+
+              {/* Inline quote preview */}
+              {previewQuote && (
+                <div
+                  className="mt-3 rounded-xl p-4 border-l-4 bg-gray-50"
+                  style={{ borderLeftColor: theme.accent }}
+                >
+                  <p className="text-gray-700 italic text-sm leading-relaxed">
+                    &ldquo;{previewQuote}&rdquo;
+                  </p>
+                  <div className="flex items-center justify-between mt-2.5">
+                    <span className="text-xs font-semibold text-gray-500">— {quotePlayer}</span>
+                    <button
+                      type="button"
+                      onClick={handleNewQuote}
+                      className="text-xs font-semibold px-3 py-1 rounded-full border transition-all active:scale-95"
+                      style={{ color: theme.accent, borderColor: theme.accent + '60', backgroundColor: theme.accent + '10' }}
+                    >
+                      🔀 New Quote
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>

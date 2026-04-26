@@ -5,7 +5,6 @@ export type AwardFormData = {
   awardeeName: string
   fantasyTeamName: string
   favoriteTeam: string
-  season: string
   awardTitle: string
   quotePlayer: string
   optionalStory: string

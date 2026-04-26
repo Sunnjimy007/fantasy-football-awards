@@ -47,7 +47,7 @@ function CertificateCard({ data }: { data: AwardFormData }) {
             className="text-xs font-bold tracking-[0.25em] uppercase"
             style={{ color: theme.certTextMuted }}
           >
-            Official Award Certificate · {data.season}
+            Official Award Certificate
           </p>
         </div>
 
@@ -109,14 +109,6 @@ function CertificateCard({ data }: { data: AwardFormData }) {
           </p>
         </div>
 
-        {/* Footer */}
-        <div
-          className="mt-8 pt-4 border-t flex justify-between items-center text-xs"
-          style={{ borderColor: theme.certDivider, color: theme.certTextMuted }}
-        >
-          <span>⚽ {data.favoriteTeam} fan</span>
-          <span className="opacity-60">{data.season} Season</span>
-        </div>
       </div>
     </div>
   )
